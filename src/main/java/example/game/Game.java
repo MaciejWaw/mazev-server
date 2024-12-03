@@ -2,7 +2,6 @@ package example.game;
 
 import example.domain.game.*;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
@@ -18,6 +17,7 @@ public class Game {
     private final Map<Player, Integer> playerHealth;
     private final Map<Player, Integer> playerGold;
     private final Cave cave;
+    private int step;
 
     public Map<Player, Integer> playerHealth() {
         return Collections.unmodifiableMap(playerHealth);
@@ -136,6 +136,7 @@ public class Game {
     }
 
     public void step(Collection<Action> commands) {
+        step++;
         // make sure there is only one command per player
         final var filtered = commands.stream()
                 .collect(Collectors.groupingBy(Action::player))
@@ -199,7 +200,7 @@ public class Game {
         // "fight" - health of all players is reduced by half of health of the weakest one
         if (players.size() > 1) {
             final var optionalMinimum = players.stream().min((o1, o2) -> Integer.compare(playerHealth.get(o1), playerHealth.get(o2))).map(playerHealth::get);
-            final var optionalHit = optionalMinimum.map(m -> Math.min(m, MINIMUM_HIT));
+            final var optionalHit = optionalMinimum.map(m -> Math.max(m / 2, MINIMUM_HIT));
             optionalHit.ifPresent(hit -> players.forEach(player -> playerHealth.compute(player, (ignored, health) -> Math.max(health - hit, 0))));
         }
 
@@ -229,6 +230,7 @@ public class Game {
 
     private Location move(Location value, Action action) {
         return switch (action.direction()) {
+            case null -> value;
             case Up -> new Location(value.row() - 1, value.column());
             case Down -> new Location(value.row() + 1, value.column());
             case Left -> new Location(value.row(), value.column() - 1);
@@ -242,5 +244,18 @@ public class Game {
 
     public Integer gold(Player.HumanPlayer player) {
         return playerGold.get(player);
+    }
+
+    public void statistics() {
+        if (step % 10 != 0) {
+            return;
+        }
+
+        System.out.println("------------------------------");
+        System.out.println("Step: " + step);
+        playerGold.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue())
+                .map(entry -> "Gold: " + entry.getValue() + ", Player: " + entry.getKey())
+                .forEach(System.out::println);
     }
 }

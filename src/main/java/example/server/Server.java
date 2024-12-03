@@ -133,6 +133,7 @@ public class Server {
                 actionsQueue.drainTo(actions);
 
                 game.step(actions);
+                game.statistics();
 
                 final var itemLocations = game.itemLocation().entrySet().stream().map(entry -> new Response.StateLocations.ItemLocation(entry.getKey(), entry.getValue())).toList();
                 final var playerLocations = game.playerLocation().entrySet().stream().map(entry -> new Response.StateLocations.PlayerLocation(entry.getKey(), entry.getValue())).toList();
@@ -154,7 +155,7 @@ public class Server {
     }
 
     private void handleClientCommands(BufferedReader reader, Player.HumanPlayer player) {
-        try {
+        try (reader) {
             while (!Thread.currentThread().isInterrupted()) {
                 final var line = reader.readLine();
                 if (line == null) {
@@ -169,17 +170,12 @@ public class Server {
                 }
             }
         } catch (IOException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            try {
-                reader.close();
-            } catch (IOException e) {
-            }
+//            Thread.currentThread().interrupt();
         }
     }
 
     private void handleClientState(BufferedWriter writer, Player.HumanPlayer player) {
-        try {
+        try (writer) {
             while (!Thread.currentThread().isInterrupted()) {
                 stateLock.lock();
                 try {
@@ -201,12 +197,7 @@ public class Server {
                 }
             }
         } catch (IOException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            try {
-                writer.close();
-            } catch (IOException e) {
-            }
+//            Thread.currentThread().interrupt();
         }
     }
 
